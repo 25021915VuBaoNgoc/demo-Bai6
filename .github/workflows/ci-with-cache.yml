@@ -72,7 +72,7 @@ jobs:
       #   - Nếu KHÔNG có cache: sẽ thấy nhiều dòng "Downloading from central:"
       # ----------------------------------------------------------------
       - name: Build with Maven
-        run: mvn clean install --no-transfer-progress
+        run: mvn clean install
 
       # ----------------------------------------------------------------
       # Bước 5: In thông tin sau build để phân tích log
