@@ -30,7 +30,7 @@ jobs:
       # Cache HIT  → KHÔNG thấy "Downloading from central:"
       # Cache MISS → CÓ nhiều dòng "Downloading from central:"
       - name: Build and Test
-        run: mvn clean install --no-transfer-progress
+        run: mvn clean install 
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
