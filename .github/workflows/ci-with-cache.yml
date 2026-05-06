@@ -1,4 +1,3 @@
-
 name: CI With Maven Cache (Optimized)
 
 on:
@@ -10,8 +9,6 @@ on:
       - '.github/workflows/ci-with-cache.yml'
   pull_request:
     branches: [ "main" ]
-
-  # Cho phép chạy thủ công từ tab Actions
   workflow_dispatch:
 
 jobs:
@@ -19,86 +16,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ----------------------------------------------------------------
-      # Bước 1: Checkout source code
-      # ----------------------------------------------------------------
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # ----------------------------------------------------------------
-      # Bước 2: Cài Java VỚI Maven Caching
-      #
-      # ĐIỂM QUAN TRỌNG: Thêm tham số  cache: 'maven'  vào setup-java
-      #
-      # Cách hoạt động:
-      #   - Lần 1: GitHub tải dependency về, LƯU vào cache với key dựa trên
-      #            hash của pom.xml
-      #   - Lần 2+: Nếu pom.xml không đổi => RESTORE cache => không cần
-      #             tải lại từ Maven Central
-      #
-      # Cache key format: setup-java-Linux-maven-{hash(pom.xml)}
-      # Cache path:       ~/.m2/repository
-      # ----------------------------------------------------------------
-      - name: Set up JDK 17 WITH Maven Cache
+      # cache: 'maven' → tự động cache ~/.m2/repository
+      - name: Set up JDK 17 with Maven Cache
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'maven'          # ✅ DÒNG QUAN TRỌNG - bật Maven dependency caching
+          cache: 'maven'
 
-      # ----------------------------------------------------------------
-      # Bước 3: In thông tin cache (debug/learning purposes)
-      # ----------------------------------------------------------------
-      - name: Check cache info
-        run: |
-          echo "========================================="
-          echo "Maven local repository location: ~/.m2/repository"
-          echo "Current time: $(date)"
-          echo "========================================="
-          # Kiểm tra xem cache đã được restore chưa
-          if [ -d "$HOME/.m2/repository" ]; then
-            CACHE_SIZE=$(du -sh "$HOME/.m2/repository" 2>/dev/null | cut -f1)
-            echo "✅ .m2/repository tồn tại. Kích thước: $CACHE_SIZE"
-            echo "=> Các dependency có thể đã được restore từ cache."
-          else
-            echo "⚠️  .m2/repository chưa tồn tại - sẽ tải mới từ Maven Central."
-          fi
+      # Cache HIT  → KHÔNG thấy "Downloading from central:"
+      # Cache MISS → CÓ nhiều dòng "Downloading from central:"
+      - name: Build and Test
+        run: mvn clean install --no-transfer-progress
 
-      # ----------------------------------------------------------------
-      # Bước 4: Build và Test
-      #
-      # --no-transfer-progress: Ẩn progress bar tải xuống
-      #   - Nếu CÓ cache: sẽ KHÔNG thấy dòng "Downloading from central:"
-      #   - Nếu KHÔNG có cache: sẽ thấy nhiều dòng "Downloading from central:"
-      # ----------------------------------------------------------------
-      - name: Build with Maven
-        run: mvn clean install
-
-      # ----------------------------------------------------------------
-      # Bước 5: In thông tin sau build để phân tích log
-      # ----------------------------------------------------------------
-      - name: Print cache verification info
-        run: |
-          echo ""
-          echo "========================================="
-          echo "BUILD COMPLETED - CACHE ANALYSIS"
-          echo "========================================="
-          echo ""
-          echo "Để xác minh cache hoạt động, kiểm tra log bước 'Build with Maven':"
-          echo ""
-          echo "  ✅ Cache HIT  (lần 2+): KHÔNG có dòng 'Downloading from central:'"
-          echo "  ❌ Cache MISS (lần 1) : CÓ nhiều dòng 'Downloading from central:'"
-          echo ""
-          echo "Tổng số files trong .m2/repository:"
-          find ~/.m2/repository -name "*.jar" 2>/dev/null | wc -l | xargs echo "  JAR files:"
-          echo ""
-          echo "Kích thước cache:"
-          du -sh ~/.m2/repository 2>/dev/null || echo "  (không thể đọc)"
-          echo "========================================="
-
-      # ----------------------------------------------------------------
-      # Bước 6 (Optional): Upload artifact - file JAR sau khi build
-      # ----------------------------------------------------------------
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
